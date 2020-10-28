@@ -4,7 +4,6 @@ export class Component {
   constructor(){
     this.props = Object.create(null);
     this.children = [];
-    this._root = null;
     this._range = null;
   }
   setAttribute(name, value){
@@ -23,12 +22,12 @@ export class Component {
     this._vdom[RENDER_TO_DOM](range);
   }
   update() {
-    let isSameNode = (oldNode, newNode) => {
+    const isSameNode = (oldNode, newNode) => {
       if(oldNode.type !== newNode.type) {
         return false;
       }
       for(let name in newNode.props) {
-        if(newNode.props[name] !== oldNode.props[name]) {
+        if(oldNode.props[name] !== newNode.props[name]) {
           return false;
         }
       }
@@ -43,9 +42,9 @@ export class Component {
       return true;
     }
 
-    let update = (oldNode, newNode) => {
+    const _update = (oldNode, newNode) => {
       if(!isSameNode(oldNode, newNode)) {
-        console.log(oldNode, oldNode._range);
+        // console.log(oldNode, oldNode._range);
         newNode[RENDER_TO_DOM](oldNode._range);
         return;
       }
@@ -54,7 +53,7 @@ export class Component {
       let newChildren = newNode.vchildren;
       let oldChildren = oldNode.vchildren;
 
-      if(!newChildren || !newChildren.length) {
+      if(!oldChildren || !oldChildren.length) {
         return;
       }
 
@@ -64,7 +63,7 @@ export class Component {
         let newChild = newChildren[i];
         let oldChild = oldChildren[i];
         if(i < oldChildren.length){
-          update(oldChild, newChild);
+          _update(oldChild, newChild);
         }else{
           let range = document.createRange();
           range.setStart(tailRange.endContainer, tailRange.endOffset);
@@ -75,7 +74,7 @@ export class Component {
       }
     }
     let vdom = this.vdom;
-    update(this._vdom, vdom);
+    _update(this._vdom, vdom);
     this._vdom = vdom;
   }
   setState(newState) {
@@ -129,7 +128,7 @@ class ElementWrapper extends Component {
       this.vchildren = this.children.map(child => child.vdom);
     }
 
-    for(let child of this.children) {
+    for(let child of this.vchildren) {
       let childRange = document.createRange();
       childRange.setStart(root, root.childNodes.length);
       childRange.setEnd(root, root.childNodes.length);
@@ -155,7 +154,7 @@ class TextWrapper extends Component {
   }
 }
 
-const replaceContent = (range, node) => {
+function replaceContent(range, node) {
   range.insertNode(node);
   range.setStartAfter(node);
   range.deleteContents();
@@ -164,7 +163,7 @@ const replaceContent = (range, node) => {
   range.setEndAfter(node);
 }
 
-export const createElement = (type, attributes,...children) => {
+export function createElement(type, attributes,...children){
   let e;
   if(typeof type === 'string'){
     e = new ElementWrapper(type);
